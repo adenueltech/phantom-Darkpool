@@ -4,7 +4,7 @@ import { AppWrapper } from '@/app/app-wrapper';
 import { ArrowUpIcon, AlertCircleIcon, CheckCircleIcon, LockIcon, InfoIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
-import { PhantomWallet, BalanceNote, MerkleProof } from '@phantom-darkpool/sdk';
+import { BalanceNote } from '@/lib/sdk-integration';
 
 export default function Withdraw() {
   const { isConnected, walletAddress } = useWallet();

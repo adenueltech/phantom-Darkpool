@@ -405,86 +405,86 @@ This implementation plan focuses on building the backend infrastructure, zero-kn
     - Display audit logs
     - _Requirements: 6.1, 6.2, 6.3_
 
-- [ ] 13. Checkpoint - Ensure frontend integration works end-to-end
+- [x] 13. Checkpoint - Ensure frontend integration works end-to-end
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 14. Implement testing and validation
-  - [ ]* 14.1 Write integration tests for deposit-to-withdrawal flow
+- [x] 14. Implement testing and validation
+  - [x]* 14.1 Write integration tests for deposit-to-withdrawal flow
     - Test full flow: deposit → create note → verify in tree → withdraw
     - Verify nullifier prevents double withdrawal
     - _Requirements: 1.1, 1.2, 1.4, 5.1, 5.2, 5.4, 5.5, 5.6_
   
-  - [ ]* 14.2 Write integration tests for order-to-settlement flow
+  - [x]* 14.2 Write integration tests for order-to-settlement flow
     - Test full flow: create order → submit → match → settle → verify new notes
     - Verify order expiration handling
     - Verify order cancellation
     - _Requirements: 2.1, 2.2, 2.3, 3.1, 3.2, 4.1, 4.5_
   
-  - [ ]* 14.3 Write property test for multi-asset support
+  - [x]* 14.3 Write property test for multi-asset support
     - **Property 29: Multi-Asset Balance Note Support**
     - **Validates: Requirements 10.1, 10.5**
   
-  - [ ]* 14.4 Write property test for asset type conservation
+  - [x]* 14.4 Write property test for asset type conservation
     - **Property 30: Asset Type Conservation in Settlement**
     - **Validates: Requirements 10.4**
   
-  - [ ]* 14.5 Write property test for public solvency verification
+  - [x]* 14.5 Write property test for public solvency verification
     - **Property 36: Public Solvency Verification**
     - **Validates: Requirements 13.1, 13.2, 13.4**
   
-  - [ ]* 14.6 Write property test for no unauthorized balance note creation
+  - [x]* 14.6 Write property test for no unauthorized balance note creation
     - **Property 37: No Unauthorized Balance Note Creation**
     - **Validates: Requirements 13.5**
   
-  - [ ]* 14.7 Write property test for encrypted data owner-only decryption
+  - [x]* 14.7 Write property test for encrypted data owner-only decryption
     - **Property 38: Encrypted Data Owner-Only Decryption**
     - **Validates: Requirements 15.7**
   
-  - [ ]* 14.8 Write property test for order commitment determinism
+  - [x]* 14.8 Write property test for order commitment determinism
     - **Property 6: Order Commitment Determinism**
     - **Validates: Requirements 2.1, 2.2, 10.2**
   
-  - [ ]* 14.9 Write property test for order validity proof requirement
+  - [x]* 14.9 Write property test for order validity proof requirement
     - **Property 7: Order Validity Proof Requirement**
     - **Validates: Requirements 2.3, 2.5**
   
-  - [ ]* 14.10 Write property test for nullifier state transition
+  - [x]* 14.10 Write property test for nullifier state transition
     - **Property 5: Nullifier State Transition**
     - **Validates: Requirements 1.5, 4.7, 5.7, 9.2**
   
-  - [ ]* 14.11 Write property test for settlement event privacy
+  - [x]* 14.11 Write property test for settlement event privacy
     - **Property 15: Settlement Event Privacy**
     - **Validates: Requirements 4.8**
   
-  - [ ]* 14.12 Write property test for viewing key revocation
+  - [x]* 14.12 Write property test for viewing key revocation
     - **Property 18: Viewing Key Revocation**
     - **Validates: Requirements 6.6**
   
-  - [ ]* 14.13 Write property test for order expiration timestamp inclusion
+  - [x]* 14.13 Write property test for order expiration timestamp inclusion
     - **Property 32: Order Expiration Timestamp Inclusion**
     - **Validates: Requirements 11.1, 11.2**
   
-  - [ ]* 14.14 Write property test for order cancellation authorization
+  - [x]* 14.14 Write property test for order cancellation authorization
     - **Property 33: Order Cancellation Authorization**
     - **Validates: Requirements 11.4, 11.5**
   
-  - [ ]* 14.15 Write property test for cancelled order exclusion
+  - [x]* 14.15 Write property test for cancelled order exclusion
     - **Property 34: Cancelled Order Exclusion**
     - **Validates: Requirements 11.6**
   
-  - [ ]* 14.16 Write property test for batched settlement atomicity
+  - [x]* 14.16 Write property test for batched settlement atomicity
     - **Property 35: Batched Settlement Atomicity**
     - **Validates: Requirements 12.3**
   
-  - [ ]* 14.17 Write property test for key rotation preservation
+  - [x]* 14.17 Write property test for key rotation preservation
     - **Property 39: Key Rotation Preservation**
     - **Validates: Requirements 17.4**
   
-  - [ ]* 14.18 Write property test for matching engine order retrieval
+  - [x]* 14.18 Write property test for matching engine order retrieval
     - **Property 44: Matching Engine Order Retrieval**
     - **Validates: Requirements 19.1**
   
-  - [ ]* 14.19 Write property test for dual settlement mode support
+  - [x]* 14.19 Write property test for dual settlement mode support
     - **Property 45: Dual Settlement Mode Support**
     - **Validates: Requirements 19.6**
 

@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { PhantomWallet, BalanceNote } from '@phantom-darkpool/sdk';
+import { BalanceNote } from '@/lib/sdk-integration';
 import { useWallet } from '@/contexts/WalletContext';
 
 export interface AssetBalance {
