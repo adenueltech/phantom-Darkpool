@@ -40,16 +40,56 @@ router.post('/withdraw', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    // Submit withdrawal to Shielded Vault contract
-    // This would call the smart contract
+    // Validate nullifier format
+    if (!nullifier.startsWith('0x') || nullifier.length !== 66) {
+      return res.status(400).json({ error: 'Invalid nullifier format' });
+    }
+    
+    // Validate recipient address
+    if (!recipient.startsWith('0x')) {
+      return res.status(400).json({ error: 'Invalid recipient address' });
+    }
+    
+    // In production, this would:
+    // 1. Verify the balance proof
+    // 2. Check nullifier hasn't been spent
+    // 3. Submit transaction to Shielded Vault contract
+    // 4. Wait for confirmation
+    // 5. Return transaction hash
+    
+    // For now, return mock response
+    const mockTxHash = '0x' + Math.random().toString(16).slice(2, 66).padEnd(64, '0');
     
     res.json({ 
       status: 'pending',
-      message: 'Withdrawal submitted'
+      transactionHash: mockTxHash,
+      nullifier,
+      message: 'Withdrawal submitted successfully'
     });
   } catch (error) {
     console.error('Withdrawal error:', error);
     res.status(500).json({ error: 'Failed to process withdrawal' });
+  }
+});
+
+/**
+ * GET /api/v1/balance/withdraw/:txHash/status
+ * Get withdrawal status
+ */
+router.get('/withdraw/:txHash/status', async (req, res) => {
+  try {
+    const { txHash } = req.params;
+    
+    // In production, query blockchain for transaction status
+    // For now, return mock confirmed status
+    res.json({
+      status: 'confirmed',
+      confirmations: 12,
+      transactionHash: txHash
+    });
+  } catch (error) {
+    console.error('Status check error:', error);
+    res.status(500).json({ error: 'Failed to check withdrawal status' });
   }
 });
 

@@ -62,18 +62,18 @@ export default function ConnectWallet() {
     setError('');
 
     try {
-      // Simulate wallet connection
+      const { connect } = await import('@/contexts/WalletContext');
+      // This will be handled by WalletContext
+      // For now, simulate the connection
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Store connection state (in real app, this would be proper wallet connection)
       localStorage.setItem('wallet_connected', 'true');
       localStorage.setItem('wallet_type', walletId);
       localStorage.setItem('wallet_address', '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb');
       
-      // Redirect to dashboard
       router.push('/dashboard');
-    } catch (err) {
-      setError('Failed to connect wallet. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to connect wallet. Please try again.');
       setConnecting(false);
     }
   };

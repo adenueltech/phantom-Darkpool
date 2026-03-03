@@ -85,5 +85,28 @@ export async function insertCommitment(asset: string, commitment: bigint) {
  */
 export async function generateMerkleProof(asset: string, leafIndex: number) {
   const manager = await initializeTreeManager();
-  return await manager.generateProof(asset, leafIndex);
+  const proof = await manager.generateProof(asset, leafIndex);
+  
+  // Return proof in the format expected by the SDK
+  return {
+    root: proof.root.toString(16),
+    siblings: proof.proof.map((p: bigint) => p.toString(16)),
+    pathIndices: generatePathIndices(leafIndex, TREE_DEPTH),
+    leafIndex
+  };
+}
+
+/**
+ * Generate path indices for Merkle proof
+ */
+function generatePathIndices(leafIndex: number, depth: number): number[] {
+  const indices: number[] = [];
+  let index = leafIndex;
+  
+  for (let i = 0; i < depth; i++) {
+    indices.push(index % 2);
+    index = Math.floor(index / 2);
+  }
+  
+  return indices;
 }

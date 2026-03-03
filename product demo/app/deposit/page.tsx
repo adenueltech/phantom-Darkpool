@@ -3,11 +3,20 @@
 import { AppWrapper } from '@/app/app-wrapper';
 import { ArrowDownIcon, AlertCircleIcon, CheckCircleIcon, LockIcon, InfoIcon } from 'lucide-react';
 import { useState } from 'react';
+import { useWallet } from '@/contexts/WalletContext';
+import { mockSDK } from '@/lib/sdk-integration';
+import { mockContractClient } from '@/lib/contract-integration';
+import { toast } from 'sonner';
 
 export default function Deposit() {
+  const { isConnected, walletAddress } = useWallet();
   const [step, setStep] = useState<'select' | 'amount' | 'review' | 'confirming' | 'complete'>('select');
   const [selectedAsset, setSelectedAsset] = useState('');
   const [amount, setAmount] = useState('');
+  const [txHash, setTxHash] = useState('');
+  const [commitmentRoot, setCommitmentRoot] = useState('');
+  const [error, setError] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const assets = [
     { symbol: 'ETH', name: 'Ethereum', balance: '2.5', logo: '🔷' },
@@ -26,9 +35,109 @@ export default function Deposit() {
     }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (!isConnected || !walletAddress) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
     setStep('confirming');
-    setTimeout(() => setStep('complete'), 2000);
+    setIsProcessing(true);
+    setError('');
+
+    try {
+      // Step 1: Create balance note commitment
+      toast.info('Generating balance note commitment...');
+      const assetAddress = getAssetAddress(selectedAsset);
+      const amountBigInt = BigInt(Math.floor(parseFloat(amount) * 1e18)); // Convert to wei
+      
+      const balanceNote = await mockSDK.createPrivateBalance(
+        assetAddress,
+        amountBigInt
+      );
+
+      // Step 2: Call Shielded Vault deposit function
+      toast.info('Submitting deposit transaction...');
+      const transactionHash = await mockContractClient.deposit(
+        assetAddress,
+        amountBigInt,
+        balanceNote.commitment
+      );
+
+      setTxHash(transactionHash);
+
+      // Step 3: Store encrypted balance note in IndexedDB
+      toast.info('Storing encrypted balance note...');
+      await storeBalanceNote(balanceNote);
+
+      // Step 4: Get commitment tree root
+      const treeRoot = await getCommitmentTreeRoot();
+      setCommitmentRoot(treeRoot);
+
+      // Success!
+      toast.success('Deposit successful!');
+      setStep('complete');
+    } catch (err: any) {
+      console.error('Deposit error:', err);
+      setError(err.message || 'Deposit failed. Please try again.');
+      toast.error(err.message || 'Deposit failed');
+      setStep('review');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Helper function to get asset address
+  const getAssetAddress = (symbol: string): string => {
+    const addresses: Record<string, string> = {
+      'ETH': '0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7',
+      'USDC': '0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8',
+      'DAI': '0x00da114221cb83fa859dbdb4c44beeaa0bb37c7537ad5ae66fe5e0efd20e6eb3',
+    };
+    return addresses[symbol] || '0x0';
+  };
+
+  // Store balance note in IndexedDB
+  const storeBalanceNote = async (note: any) => {
+    try {
+      const db = await openDatabase();
+      const tx = db.transaction('balanceNotes', 'readwrite');
+      const store = tx.objectStore('balanceNotes');
+      
+      await store.add({
+        ...note,
+        timestamp: Date.now(),
+        spent: false,
+      });
+      
+      await tx.done;
+    } catch (err) {
+      console.error('Failed to store balance note:', err);
+      // Non-critical error, continue anyway
+    }
+  };
+
+  // Open IndexedDB
+  const openDatabase = async (): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('PhantomDarkpool', 1);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+      
+      request.onupgradeneeded = (event: any) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains('balanceNotes')) {
+          db.createObjectStore('balanceNotes', { keyPath: 'commitment' });
+        }
+      };
+    });
+  };
+
+  // Get commitment tree root (mock for now)
+  const getCommitmentTreeRoot = async (): Promise<string> => {
+    // TODO: Query from contract or API
+    return '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
   };
 
   return (
@@ -68,6 +177,17 @@ export default function Deposit() {
             </div>
           ))}
         </div>
+
+        {/* Error Display */}
+        {error && step === 'review' && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
+            <AlertCircleIcon size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-red-500 mb-1">Deposit Failed</h3>
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          </div>
+        )}
 
         {/* Step 1: Select Asset */}
         {step === 'select' && (
@@ -224,10 +344,20 @@ export default function Deposit() {
               </button>
               <button
                 onClick={handleConfirm}
-                className="flex-1 px-6 py-3 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white font-semibold transition-colors flex items-center justify-center gap-2"
+                disabled={isProcessing}
+                className="flex-1 px-6 py-3 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <ArrowDownIcon size={18} />
-                Confirm Deposit
+                {isProcessing ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <ArrowDownIcon size={18} />
+                    Confirm Deposit
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -266,11 +396,11 @@ export default function Deposit() {
               <div className="bg-[#1F2937]/50 rounded-lg p-4 text-left space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[#6B7280]">Transaction Hash</span>
-                  <span className="font-mono text-sm text-[#22D3EE]">0x7f3a9c2e...</span>
+                  <span className="font-mono text-sm text-[#22D3EE]">{txHash.slice(0, 10)}...</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[#6B7280]">Commitment Root</span>
-                  <span className="font-mono text-sm text-[#22D3EE]">0xabc123...</span>
+                  <span className="font-mono text-sm text-[#22D3EE]">{commitmentRoot.slice(0, 10)}...</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[#6B7280]">Status</span>

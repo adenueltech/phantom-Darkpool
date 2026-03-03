@@ -2,13 +2,24 @@
 
 import { AppWrapper } from '@/app/app-wrapper';
 import { ArrowUpIcon, AlertCircleIcon, CheckCircleIcon, LockIcon, InfoIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useWallet } from '@/contexts/WalletContext';
+import { PhantomWallet, BalanceNote, MerkleProof } from '@phantom-darkpool/sdk';
 
 export default function Withdraw() {
+  const { isConnected, walletAddress } = useWallet();
   const [step, setStep] = useState<'select' | 'amount' | 'review' | 'confirming' | 'complete'>('select');
   const [selectedAsset, setSelectedAsset] = useState('');
   const [amount, setAmount] = useState('');
   const [recipient, setRecipient] = useState('');
+  const [phantomWallet, setPhantomWallet] = useState<PhantomWallet | null>(null);
+  const [availableNotes, setAvailableNotes] = useState<BalanceNote[]>([]);
+  const [selectedNote, setSelectedNote] = useState<BalanceNote | null>(null);
+  const [merkleProof, setMerkleProof] = useState<MerkleProof | null>(null);
+  const [transactionHash, setTransactionHash] = useState<string>('');
+  const [nullifier, setNullifier] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [proofGenerationProgress, setProofGenerationProgress] = useState<string>('');
 
   const balances = [
     { symbol: 'ETH', name: 'Ethereum', balance: '5.24', usdValue: '$12,480', logo: '🔷' },
@@ -16,20 +27,123 @@ export default function Withdraw() {
     { symbol: 'DAI', name: 'Dai', balance: '25,000', usdValue: '$25,000', logo: '🔶' },
   ];
 
-  const handleSelectAsset = (symbol: string) => {
+  // Initialize Phantom Wallet SDK
+  useEffect(() => {
+    if (isConnected && walletAddress) {
+      // In production, derive master key from wallet signature
+      // For demo, use a deterministic key based on wallet address
+      const masterKey = BigInt('0x' + walletAddress.slice(2, 66).padEnd(64, '0'));
+      const wallet = new PhantomWallet(masterKey, process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1');
+      wallet.initialize().then(() => {
+        setPhantomWallet(wallet);
+      }).catch(err => {
+        console.error('Failed to initialize wallet:', err);
+        setError('Failed to initialize wallet SDK');
+      });
+    }
+  }, [isConnected, walletAddress]);
+
+  const handleSelectAsset = async (symbol: string) => {
     setSelectedAsset(symbol);
+    setError('');
+    
+    if (phantomWallet) {
+      try {
+        // Get unspent notes for the selected asset
+        // In production, this would use the actual asset contract address
+        const assetAddress = `0x${symbol.toLowerCase()}`;
+        const notes = await phantomWallet.getUnspentNotes(assetAddress);
+        setAvailableNotes(notes);
+        
+        if (notes.length === 0) {
+          setError('No available balance notes for this asset');
+        }
+      } catch (err) {
+        console.error('Failed to fetch notes:', err);
+        setError('Failed to fetch balance notes');
+      }
+    }
+    
     setStep('amount');
   };
 
-  const handleReview = () => {
-    if (amount && recipient) {
-      setStep('review');
+  const handleReview = async () => {
+    if (amount && recipient && phantomWallet) {
+      setError('');
+      
+      try {
+        // Select appropriate balance note
+        const withdrawAmount = BigInt(parseFloat(amount) * 1e18); // Convert to wei
+        const note = availableNotes.find(n => n.amount >= withdrawAmount);
+        
+        if (!note) {
+          setError('No balance note with sufficient funds');
+          return;
+        }
+        
+        setSelectedNote(note);
+        
+        // Fetch Merkle proof for the note
+        const assetAddress = `0x${selectedAsset.toLowerCase()}`;
+        const proofResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/v1/commitment-tree/proof?asset=${assetAddress}&leafIndex=${note.index || 0}`
+        );
+        
+        if (!proofResponse.ok) {
+          throw new Error('Failed to fetch Merkle proof');
+        }
+        
+        const proofData = await proofResponse.json();
+        setMerkleProof(proofData);
+        
+        setStep('review');
+      } catch (err: any) {
+        console.error('Failed to prepare withdrawal:', err);
+        setError(err.message || 'Failed to prepare withdrawal');
+      }
     }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (!phantomWallet || !selectedNote || !merkleProof) {
+      setError('Missing required data for withdrawal');
+      return;
+    }
+    
     setStep('confirming');
-    setTimeout(() => setStep('complete'), 3000);
+    setError('');
+    
+    try {
+      // Update progress
+      setProofGenerationProgress('Generating balance proof...');
+      
+      // Perform withdrawal with proof generation
+      const withdrawAmount = BigInt(parseFloat(amount) * 1e18);
+      const assetAddress = `0x${selectedAsset.toLowerCase()}`;
+      
+      const result = await phantomWallet.withdraw({
+        asset: assetAddress,
+        amount: withdrawAmount,
+        recipient,
+        balanceNote: selectedNote,
+        merkleProof,
+      });
+      
+      setProofGenerationProgress('Proof generated, submitting to blockchain...');
+      
+      // Store transaction details
+      setTransactionHash(result.transactionHash);
+      setNullifier(result.nullifier);
+      
+      // Wait a bit to simulate blockchain confirmation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setStep('complete');
+    } catch (err: any) {
+      console.error('Withdrawal failed:', err);
+      setError(err.message || 'Withdrawal failed');
+      setStep('review');
+    }
   };
 
   return (
@@ -42,6 +156,17 @@ export default function Withdraw() {
             <h1 className="text-3xl md:text-4xl font-bold">Withdraw</h1>
           </div>
           <p className="text-[#6B7280]">Transfer funds from your private balance to your wallet</p>
+          
+          {/* Error Message */}
+          {error && (
+            <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg p-4 flex items-start gap-3">
+              <AlertCircleIcon size={20} className="text-[#EF4444] flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-[#EF4444] mb-1">Error</h3>
+                <p className="text-[#EF4444] text-sm">{error}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Progress Indicator */}
@@ -293,15 +418,23 @@ export default function Withdraw() {
             </div>
             <div>
               <h2 className="text-2xl font-bold mb-2">Processing Withdrawal</h2>
-              <p className="text-[#6B7280]">Generating balance proof and submitting to blockchain...</p>
+              <p className="text-[#6B7280]">{proofGenerationProgress || 'Generating balance proof and submitting to blockchain...'}</p>
             </div>
             <div className="space-y-2 text-[#6B7280] text-sm">
               <div className="flex items-center justify-center gap-2">
-                <CheckCircleIcon size={16} className="text-[#10B981]" />
-                <span>Balance proof generated</span>
+                {proofGenerationProgress.includes('generated') ? (
+                  <CheckCircleIcon size={16} className="text-[#10B981]" />
+                ) : (
+                  <div className="w-4 h-4 border-2 border-[#22D3EE] border-t-transparent rounded-full animate-spin" />
+                )}
+                <span>Balance proof generation</span>
               </div>
               <div className="flex items-center justify-center gap-2">
-                <div className="w-4 h-4 border-2 border-[#22D3EE] border-t-transparent rounded-full animate-spin" />
+                {proofGenerationProgress.includes('submitting') ? (
+                  <div className="w-4 h-4 border-2 border-[#22D3EE] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <div className="w-4 h-4 rounded-full border border-[#6B7280]" />
+                )}
                 <span>Verifying on-chain...</span>
               </div>
             </div>
@@ -328,11 +461,11 @@ export default function Withdraw() {
               <div className="bg-[#1F2937]/50 rounded-lg p-4 text-left space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[#6B7280]">Transaction Hash</span>
-                  <span className="font-mono text-sm text-[#22D3EE]">0x9f2b8d3e...</span>
+                  <span className="font-mono text-sm text-[#22D3EE]">{transactionHash.slice(0, 10)}...</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[#6B7280]">Nullifier</span>
-                  <span className="font-mono text-sm text-[#22D3EE]">0xdef456...</span>
+                  <span className="font-mono text-sm text-[#22D3EE]">{nullifier.slice(0, 10)}...</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[#6B7280]">Recipient</span>

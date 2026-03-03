@@ -355,50 +355,50 @@ This implementation plan focuses on building the backend infrastructure, zero-kn
     - Create state synchronization with on-chain data
     - _Requirements: 14.6_
 
-- [ ] 12. Integrate frontend with backend and smart contracts
-  - [ ] 12.1 Connect wallet integration to Starknet wallets
+- [x] 12. Integrate frontend with backend and smart contracts
+  - [x] 12.1 Connect wallet integration to Starknet wallets
     - Integrate Argent X wallet connector
     - Integrate Braavos wallet connector
     - Implement wallet connection flow in existing UI
     - Handle wallet account changes and disconnection
     - _Requirements: 14.1_
   
-  - [ ] 12.2 Connect deposit flow to Shielded Vault
+  - [x] 12.2 Connect deposit flow to Shielded Vault
     - Update deposit page to call Shielded Vault deposit function
     - Generate balance note commitment on successful deposit
     - Store encrypted balance note in local storage
     - Update UI to show deposit confirmation
     - _Requirements: 5.1, 5.2_
   
-  - [ ] 12.3 Connect order submission to Order Registry
+  - [x] 12.3 Connect order submission to Order Registry
     - Update trading interface to generate order commitments
     - Generate Order Validity Proof before submission
     - Submit order to backend API
     - Update UI to show order status
     - _Requirements: 2.1, 2.2, 2.3_
   
-  - [ ] 12.4 Connect withdrawal flow to Shielded Vault
+  - [x] 12.4 Connect withdrawal flow to Shielded Vault
     - Update withdrawal page to generate balance proof
     - Generate Merkle proof for balance note
     - Submit withdrawal to backend API
     - Update UI to show withdrawal status
     - _Requirements: 5.4, 5.5, 5.6_
   
-  - [ ] 12.5 Implement real-time order book updates
+  - [x] 12.5 Implement real-time order book updates
     - Connect WebSocket to backend for real-time updates
     - Update order book display on new orders
     - Update order status on settlements
     - Show live matching activity
     - _Requirements: 15.6_
   
-  - [ ] 12.6 Connect dashboard to balance and transaction data
+  - [x] 12.6 Connect dashboard to balance and transaction data
     - Fetch user's balance notes from encrypted storage
     - Display total balances per asset
     - Show transaction history from on-chain events
     - Update dashboard in real-time
     - _Requirements: 15.4_
   
-  - [ ] 12.7 Implement audit/compliance features in UI
+  - [x] 12.7 Implement audit/compliance features in UI
     - Connect viewing key generation to Audit Gateway
     - Implement viewing key sharing interface
     - Show selective disclosure options

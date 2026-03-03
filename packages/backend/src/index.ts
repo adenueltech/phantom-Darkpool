@@ -21,11 +21,17 @@ export const starknetProvider = new Provider({ nodeUrl: STARKNET_RPC_URL });
 // HTTP server
 const server = createServer(app);
 
-// WebSocket server for real-time updates
+// WebSocket server for real-time updates (same port as HTTP)
 export const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws) => {
   console.log('WebSocket client connected');
+  
+  // Send welcome message
+  ws.send(JSON.stringify({ 
+    type: 'connected', 
+    message: 'Connected to Phantom Darkpool WebSocket' 
+  }));
   
   ws.on('message', (message) => {
     console.log('Received:', message.toString());
@@ -33,6 +39,10 @@ wss.on('connection', (ws) => {
   
   ws.on('close', () => {
     console.log('WebSocket client disconnected');
+  });
+  
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
   });
 });
 
@@ -49,15 +59,20 @@ app.get('/health', (_req, res) => {
 import orderRoutes from './routes/orders';
 import balanceRoutes from './routes/balance';
 import treeRoutes from './routes/tree';
+import transactionRoutes from './routes/transactions';
+import auditRoutes from './routes/audit';
 
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/balance', balanceRoutes);
 app.use('/api/v1/commitment-tree', treeRoutes);
+app.use('/api/v1/withdraw', balanceRoutes); // Withdrawal endpoint is in balance routes
+app.use('/api/v1/transactions', transactionRoutes);
+app.use('/api/v1/audit', auditRoutes);
 
 // Start server
 server.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
-  console.log(`WebSocket server ready`);
+  console.log(`WebSocket server ready on ws://localhost:${PORT}`);
   console.log(`Starknet RPC: ${STARKNET_RPC_URL}`);
 });
 
