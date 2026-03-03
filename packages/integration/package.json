@@ -1,0 +1,21 @@
+{
+  "name": "@phantom-darkpool/integration",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "jest",
+    "test:e2e": "jest --testPathPattern=e2e"
+  },
+  "dependencies": {
+    "@phantom-darkpool/sdk": "workspace:*",
+    "@phantom-darkpool/circuits": "workspace:*",
+    "starknet": "^6.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "typescript": "^5.4.5",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "@types/jest": "^29.5.12"
+  }
+}

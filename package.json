@@ -1,0 +1,21 @@
+{
+  "name": "phantom-darkpool",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.30.3",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5"
+  }
+}

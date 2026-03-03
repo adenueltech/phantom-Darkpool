@@ -1,0 +1,17 @@
+{
+  "name": "@phantom-darkpool/circuits",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "compile": "node scripts/compile-circuits.js",
+    "setup": "node scripts/trusted-setup.js",
+    "test": "jest",
+    "clean": "rm -rf build keys *.r1cs *.wasm *.zkey *.sym"
+  },
+  "devDependencies": {
+    "circomlib": "^2.0.5",
+    "snarkjs": "^0.7.3",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.12"
+  }
+}
