@@ -65,8 +65,9 @@ export class CommitmentTree {
     };
 
     // Initialize tree with zero value (0n) and Poseidon hash
+    // Cast to any to work around type mismatch in @zk-kit library
     this.tree = new IncrementalMerkleTree(
-      this.poseidonHasher,
+      this.poseidonHasher as any,
       this.depth,
       ZERO_VALUE,
       2,  // arity (binary tree)

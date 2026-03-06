@@ -118,19 +118,15 @@ export class PhantomWallet {
     minAmount: bigint
   ): Promise<any> {
     this.ensureInitialized();
+    // Derive nullifier secret from master key (simplified for now)
+    const nullifierSecret = BigInt(0); // TODO: Derive from master key
     // Implementation delegated to ProofGenerator
-    return await this.proofGenerator.generateBalanceProof({
-      merkleRoot: merkleProof.root,
-      nullifier: note.nullifier,
-      minAmount: minAmount.toString(),
-      asset: note.asset,
-      amount: note.amount.toString(),
-      salt: note.salt.toString(),
-      owner: note.owner,
-      nullifierSecret: '0', // Derived internally
-      merkleProof: merkleProof.siblings,
-      pathIndices: merkleProof.pathIndices,
-    });
+    return await this.proofGenerator.generateBalanceProof(
+      note,
+      merkleProof,
+      nullifierSecret,
+      minAmount
+    );
   }
 
   /**
@@ -258,9 +254,14 @@ export * from './types';
 export * from './crypto';
 export * from './wallet/balanceNoteManager';
 export * from './wallet/orderCommitmentManager';
-export * from './wallet/proofGenerator';
-export * from './wallet/viewingKeyManager';
-export * from './wallet/withdrawalManager';
 export * from './wallet/stateManager';
+
+// Re-export specific items to avoid conflicts
+export { ProofGenerator } from './wallet/proofGenerator';
+export { ViewingKeyManager } from './wallet/viewingKeyManager';
+export { WithdrawalManager } from './wallet/withdrawalManager';
+export { ProofOptimizer, proofOptimizer } from './wallet/proofOptimizer';
+export { ProofAggregator, proofAggregator } from './wallet/proofAggregator';
+export { CircuitValidator } from './wallet/circuitValidator';
 
 export { BalanceNote, OrderParams, OrderCommitment, WithdrawalParams, WithdrawalResult, DataScope, MerkleProof };

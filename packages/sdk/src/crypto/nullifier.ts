@@ -152,10 +152,28 @@ export class NullifierTracker {
    * Export tracker state for persistence
    */
   export(): string {
-    return JSON.stringify({
-      spent: Array.from(this.spentNullifiers.entries()),
-      pending: Array.from(this.pendingNullifiers.entries()),
-    });
+    // Convert BigInt values to strings for JSON serialization
+    const spent = Array.from(this.spentNullifiers.entries()).map(([key, entry]) => [
+      key,
+      {
+        nullifier: entry.nullifier.toString(),
+        commitment: entry.commitment.toString(),
+        spentAt: entry.spentAt,
+        transactionHash: entry.transactionHash,
+      },
+    ]);
+    
+    const pending = Array.from(this.pendingNullifiers.entries()).map(([key, entry]) => [
+      key,
+      {
+        nullifier: entry.nullifier.toString(),
+        commitment: entry.commitment.toString(),
+        spentAt: entry.spentAt,
+        transactionHash: entry.transactionHash,
+      },
+    ]);
+    
+    return JSON.stringify({ spent, pending });
   }
   
   /**
@@ -163,8 +181,31 @@ export class NullifierTracker {
    */
   import(data: string): void {
     const parsed = JSON.parse(data);
-    this.spentNullifiers = new Map(parsed.spent);
-    this.pendingNullifiers = new Map(parsed.pending);
+    
+    // Convert string values back to BigInt
+    this.spentNullifiers = new Map(
+      parsed.spent.map(([key, entry]: [string, any]) => [
+        key,
+        {
+          nullifier: BigInt(entry.nullifier),
+          commitment: BigInt(entry.commitment),
+          spentAt: entry.spentAt,
+          transactionHash: entry.transactionHash,
+        },
+      ])
+    );
+    
+    this.pendingNullifiers = new Map(
+      parsed.pending.map(([key, entry]: [string, any]) => [
+        key,
+        {
+          nullifier: BigInt(entry.nullifier),
+          commitment: BigInt(entry.commitment),
+          spentAt: entry.spentAt,
+          transactionHash: entry.transactionHash,
+        },
+      ])
+    );
   }
 }
 

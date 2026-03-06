@@ -57,38 +57,39 @@ export class RateLimiter {
    * Create rate limiting middleware
    */
   middleware() {
+    const self = this;
     return async (req: Request, res: Response, next: NextFunction) => {
-      const key = this.getKey(req);
+      const key = self.getKey(req);
       const now = Date.now();
 
       // Get or create rate limit entry
-      let entry = this.limits.get(key);
+      let entry = self.limits.get(key);
       if (!entry) {
         entry = {
           count: 0,
-          resetTime: now + this.config.windowMs,
+          resetTime: now + self.config.windowMs,
           requests: [],
         };
-        this.limits.set(key, entry);
+        self.limits.set(key, entry);
       }
 
       // Clean old requests (sliding window)
       entry.requests = entry.requests.filter(
-        timestamp => timestamp > now - this.config.windowMs
+        timestamp => timestamp > now - self.config.windowMs
       );
 
       // Check if limit exceeded
-      if (entry.requests.length >= this.config.maxRequests) {
+      if (entry.requests.length >= self.config.maxRequests) {
         const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
         
-        res.setHeader('X-RateLimit-Limit', this.config.maxRequests.toString());
+        res.setHeader('X-RateLimit-Limit', self.config.maxRequests.toString());
         res.setHeader('X-RateLimit-Remaining', '0');
         res.setHeader('X-RateLimit-Reset', entry.resetTime.toString());
         res.setHeader('Retry-After', retryAfter.toString());
 
         return res.status(429).json({
           error: 'Rate limit exceeded',
-          message: this.config.message,
+          message: self.config.message,
           retryAfter,
         });
       }
@@ -99,31 +100,31 @@ export class RateLimiter {
 
       // Update reset time if needed
       if (now >= entry.resetTime) {
-        entry.resetTime = now + this.config.windowMs;
+        entry.resetTime = now + self.config.windowMs;
       }
 
       // Set rate limit headers
-      const remaining = this.config.maxRequests - entry.requests.length;
-      res.setHeader('X-RateLimit-Limit', this.config.maxRequests.toString());
+      const remaining = self.config.maxRequests - entry.requests.length;
+      res.setHeader('X-RateLimit-Limit', self.config.maxRequests.toString());
       res.setHeader('X-RateLimit-Remaining', remaining.toString());
       res.setHeader('X-RateLimit-Reset', entry.resetTime.toString());
 
       // Handle response to potentially skip counting
-      if (this.config.skipSuccessfulRequests || this.config.skipFailedRequests) {
+      if (self.config.skipSuccessfulRequests || self.config.skipFailedRequests) {
         const originalSend = res.send;
         res.send = function (data: any) {
           const statusCode = res.statusCode;
           
           // Remove request from count if needed
           if (
-            (this.config.skipSuccessfulRequests && statusCode < 400) ||
-            (this.config.skipFailedRequests && statusCode >= 400)
+            (self.config.skipSuccessfulRequests && statusCode < 400) ||
+            (self.config.skipFailedRequests && statusCode >= 400)
           ) {
             entry!.requests.pop();
           }
           
-          return originalSend.call(this, data);
-        }.bind(this);
+          return originalSend.call(res, data);
+        };
       }
 
       next();
