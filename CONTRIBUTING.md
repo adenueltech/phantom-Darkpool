@@ -16,7 +16,7 @@ Before contributing, ensure your development environment is properly set up:
    ```bash
    git clone <repository-url>
    cd phantom-darkpool
-   npm install
+   pnpm install
    ```
 
 3. **Verify setup**:
