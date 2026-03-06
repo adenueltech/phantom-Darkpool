@@ -135,25 +135,13 @@ export class WithdrawalManager {
     const noteIndex = BigInt(balanceNote.index || Date.now());
     const nullifierSecret = await deriveNullifierSecret(this.masterKey, noteIndex);
 
-    // Prepare proof inputs
-    const inputs = {
-      // Public inputs
-      merkleRoot: merkleProof.root,
-      nullifier: balanceNote.nullifier,
-      minAmount: minAmount.toString(),
-
-      // Private inputs
-      asset: balanceNote.asset,
-      amount: balanceNote.amount.toString(),
-      salt: balanceNote.salt.toString(),
-      owner: balanceNote.owner,
-      nullifierSecret: nullifierSecret.toString(),
-      merkleProof: merkleProof.siblings,
-      pathIndices: merkleProof.pathIndices,
-    };
-
     // Generate proof using ProofGenerator
-    return await this.proofGenerator.generateBalanceProof(inputs);
+    return await this.proofGenerator.generateBalanceProof(
+      balanceNote,
+      merkleProof,
+      nullifierSecret,
+      minAmount
+    );
   }
 
   /**

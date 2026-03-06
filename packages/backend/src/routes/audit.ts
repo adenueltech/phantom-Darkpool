@@ -6,8 +6,9 @@
  */
 
 import { Router, Request, Response } from 'express';
+import type { Router as RouterType } from 'express';
 
-const router = Router();
+const router: RouterType = Router();
 
 // In-memory storage for viewing keys (in production, use database)
 interface ViewingKeyRecord {

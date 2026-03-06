@@ -242,9 +242,10 @@ export class ViewingKeyManager {
   private async decrypt(encryptedData: string, decryptionKey: string): Promise<string> {
     // Convert decryption key to CryptoKey
     const keyBytes = this.hexToBytes(decryptionKey);
+    const keyBuffer = keyBytes.buffer.slice(keyBytes.byteOffset, keyBytes.byteOffset + keyBytes.byteLength) as ArrayBuffer;
     const cryptoKey = await crypto.subtle.importKey(
       'raw',
-      keyBytes,
+      keyBuffer,
       { name: 'AES-GCM' },
       false,
       ['decrypt']
@@ -254,12 +255,14 @@ export class ViewingKeyManager {
     const [ivHex, ciphertextHex] = encryptedData.split(':');
     const iv = this.hexToBytes(ivHex);
     const ciphertext = this.hexToBytes(ciphertextHex);
+    const ivBuffer = iv.buffer.slice(iv.byteOffset, iv.byteOffset + iv.byteLength) as ArrayBuffer;
+    const ciphertextBuffer = ciphertext.buffer.slice(ciphertext.byteOffset, ciphertext.byteOffset + ciphertext.byteLength) as ArrayBuffer;
 
     // Decrypt
     const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv },
+      { name: 'AES-GCM', iv: ivBuffer },
       cryptoKey,
-      ciphertext
+      ciphertextBuffer
     );
 
     const decoder = new TextDecoder();

@@ -14,6 +14,7 @@ import * as snarkjs from 'snarkjs';
 import { BalanceNote } from './balanceNoteManager';
 import { OrderParams } from './orderCommitmentManager';
 import { MerkleProof } from '../types';
+import { ProofOptimizer, proofOptimizer } from './proofOptimizer';
 
 /**
  * Proof structure
@@ -40,10 +41,13 @@ export interface CircuitPaths {
  */
 export class ProofGenerator {
   private circuitPaths: Map<string, CircuitPaths> = new Map();
+  private optimizer: ProofOptimizer;
 
-  constructor() {
+  constructor(optimizer?: ProofOptimizer) {
     // Initialize default circuit paths
     this.initializeCircuitPaths();
+    // Use provided optimizer or global instance
+    this.optimizer = optimizer || proofOptimizer;
   }
 
   /**
@@ -119,14 +123,19 @@ export class ProofGenerator {
       pathIndices: merkleProof.pathIndices,
     };
 
-    // Generate proof using SnarkJS
-    const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+    // Use optimizer for proof generation
+    return await this.optimizer.optimizedProofGeneration(
+      'balance',
       input,
-      paths.wasmPath,
-      paths.zkeyPath
+      async () => {
+        const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+          input,
+          paths.wasmPath,
+          paths.zkeyPath
+        );
+        return this.formatProof(proof);
+      }
     );
-
-    return this.formatProof(proof);
   }
 
   /**
@@ -331,5 +340,75 @@ export class ProofGenerator {
   async preloadAllCircuits(): Promise<void> {
     const circuitNames = Array.from(this.circuitPaths.keys());
     await Promise.all(circuitNames.map(name => this.loadCircuitFiles(name)));
+    
+    // Pre-compile circuits for optimization
+    await this.optimizer.precompileAllCircuits(this.circuitPaths);
+  }
+
+  /**
+   * Get optimizer instance
+   */
+  getOptimizer(): ProofOptimizer {
+    return this.optimizer;
+  }
+
+  /**
+   * Generate multiple proofs in parallel
+   * Optimized batch proof generation
+   */
+  async generateProofsParallel(
+    tasks: Array<{
+      type: 'balance' | 'orderValidity' | 'tradeConservation' | 'matchingCorrectness';
+      params: any;
+    }>
+  ): Promise<Proof[]> {
+    const proofTasks = tasks.map(task => {
+      switch (task.type) {
+        case 'balance':
+          return {
+            circuitName: 'balance',
+            inputs: task.params,
+            generateFn: () => this.generateBalanceProof(
+              task.params.note,
+              task.params.merkleProof,
+              task.params.nullifierSecret,
+              task.params.minAmount
+            ),
+          };
+        case 'orderValidity':
+          return {
+            circuitName: 'orderValidity',
+            inputs: task.params,
+            generateFn: () => this.generateOrderValidityProof(
+              task.params.orderParams,
+              task.params.nonce,
+              task.params.commitmentHash
+            ),
+          };
+        case 'tradeConservation':
+          return {
+            circuitName: 'tradeConservation',
+            inputs: task.params,
+            generateFn: () => this.generateTradeConservationProof(
+              task.params.inputNotes,
+              task.params.outputNotes,
+              task.params.executionId
+            ),
+          };
+        case 'matchingCorrectness':
+          return {
+            circuitName: 'matchingCorrectness',
+            inputs: task.params,
+            generateFn: () => this.generateMatchingCorrectnessProof(
+              task.params.orders,
+              task.params.executionId
+            ),
+          };
+        default:
+          throw new Error(`Unknown proof type: ${task.type}`);
+      }
+    });
+
+    return await this.optimizer.batchOptimizedProofGeneration(proofTasks);
   }
 }

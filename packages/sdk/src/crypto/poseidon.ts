@@ -53,6 +53,10 @@ export async function poseidonHash2(left: bigint, right: bigint): Promise<bigint
  * Hash multiple values using Poseidon
  */
 export async function poseidonHashMany(inputs: bigint[]): Promise<bigint> {
+  // Handle empty array - return hash of zero
+  if (inputs.length === 0) {
+    return poseidonHash(0n);
+  }
   const poseidon = await ensurePoseidon();
   const hash = poseidon(inputs);
   return poseidon.F.toObject(hash);

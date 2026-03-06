@@ -7,7 +7,16 @@
  * Requirements: 1.1, 1.3
  */
 
-import { pedersenHash } from 'bigint-pedersen';
+import * as pedersenLib from 'bigint-pedersen';
+
+/**
+ * Initialize Pedersen commitment system
+ * Must be called before using any Pedersen functions
+ */
+export function initPedersen(): void {
+  // bigint-pedersen is synchronous, no initialization needed
+  // This function exists for API consistency with other crypto modules
+}
 
 /**
  * Balance note structure for commitment generation
@@ -32,8 +41,11 @@ export interface BalanceNoteData {
  * @returns Commitment as bigint
  */
 export function createBalanceCommitment(data: BalanceNoteData): bigint {
-  const message = [data.asset, data.amount, data.salt, data.owner];
-  return pedersenHash(message);
+  // Combine all values into a single message
+  const message = data.asset + data.amount + data.salt + data.owner;
+  const blinding = data.salt; // Use salt as blinding factor
+  const ped = (pedersenLib as any).default || pedersenLib;
+  return ped.commitment(message, blinding, ped.DEFAULT_GENERRATOR);
 }
 
 /**
